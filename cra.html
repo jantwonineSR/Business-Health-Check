@@ -1,0 +1,756 @@
+<!--
+Business Health Check - CRA Access Page (GitHub Pages) - v3
+Save as: cra.html
+
+Updates:
+- When client clicks Continue, calls Apps Script action=mark_cra_completed, then redirects
+- Swaps button positions: Continue on the left, Report a problem on the right (still noticeable)
+- Reference links in one row (no wrap; scrolls horizontally if needed)
+- YouTube embed set via JS with origin param + youtube-nocookie; includes Open video fallback
+
+Note:
+- Many canada.ca pages block embedded view. Modal includes "Open in new tab".
+-->
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>CRA access | Business Health Check</title>
+
+  <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/jantwonineSR/Business-Health-Check/refs/heads/main/GA%20Logo_no%20bg.png" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    :root{
+      --ga-primary: #213E4A;
+      --ga-accent: #E7A33A;
+      --ga-dark: #0E3A43;
+      --ga-text: #E6E6E6;
+
+      --card-bg: rgba(14, 58, 67, 0.55);
+      --card-border: rgba(230, 230, 230, 0.14);
+      --shadow: 0 20px 50px rgba(0,0,0,0.35);
+      --radius: 18px;
+    }
+
+    *{ box-sizing: border-box; }
+    html, body{ height: 100%; }
+    body{
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color: var(--ga-text);
+      background:
+        radial-gradient(1200px 700px at 15% 10%, rgba(231, 163, 58, 0.18), transparent 55%),
+        radial-gradient(900px 600px at 80% 20%, rgba(230, 230, 230, 0.10), transparent 60%),
+        linear-gradient(135deg, var(--ga-dark), var(--ga-primary));
+      display: grid;
+      place-items: center;
+      padding: 28px 16px;
+    }
+
+    .wrap{
+      width: min(980px, 100%);
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 22px;
+      align-items: stretch;
+    }
+
+    @media (max-width: 920px){
+      .wrap{ grid-template-columns: 1fr; }
+    }
+
+    .panel{
+      border: 1px solid var(--card-border);
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      position: relative;
+      min-height: 540px;
+    }
+
+    .panel::before{
+      content: "";
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 6px;
+      background: linear-gradient(90deg, var(--ga-accent), rgba(231,163,58,0.35));
+    }
+
+    .left{
+      padding: 26px 26px 20px;
+      display: grid;
+      grid-template-rows: auto auto auto 1fr auto;
+      gap: 14px;
+    }
+
+    .brand{
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand img{
+      width: 46px;
+      height: 46px;
+      border-radius: 12px;
+      border: 1px solid rgba(230, 230, 230, 0.18);
+      background: rgba(255,255,255,0.06);
+      object-fit: contain;
+      padding: 6px;
+    }
+
+    .brand .meta{ display: grid; gap: 2px; }
+    .brand .meta .name{ font-weight: 700; letter-spacing: 0.2px; font-size: 14px; opacity: 0.95; }
+    .brand .meta .tag{ font-size: 12px; opacity: 0.75; }
+
+    .topline{
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    h1{ margin: 0; font-size: 18px; letter-spacing: -0.2px; }
+
+    .refbox{
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(231,163,58,0.35);
+      background: rgba(33, 62, 74, 0.30);
+      font-size: 12px;
+      opacity: 0.92;
+      white-space: nowrap;
+    }
+
+    .refbox code{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      color: var(--ga-text);
+    }
+
+    .sub{
+      margin: 0;
+      opacity: 0.82;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .card{
+      border: 1px solid rgba(230,230,230,0.12);
+      background: rgba(33, 62, 74, 0.28);
+      border-radius: 16px;
+      padding: 14px 14px;
+    }
+
+    .card h2{
+      margin: 0 0 10px;
+      font-size: 14px;
+      letter-spacing: -0.2px;
+    }
+
+    .stepslist{
+      margin: 0;
+      padding-left: 18px;
+      display: grid;
+      gap: 8px;
+      font-size: 13px;
+      opacity: 0.9;
+      line-height: 1.55;
+    }
+
+    .signInBtn{
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(231,163,58,0.35);
+      background: rgba(231, 163, 58, 0.12);
+      color: var(--ga-text);
+      cursor: pointer;
+      font-weight: 800;
+      letter-spacing: 0.2px;
+      text-decoration: none;
+      width: fit-content;
+    }
+
+    .signInBtn:hover{
+      border-color: rgba(231,163,58,0.65);
+      background: rgba(231, 163, 58, 0.16);
+    }
+
+    .hl{
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(231,163,58,0.45);
+      background: rgba(231, 163, 58, 0.18);
+      color: var(--ga-text);
+      font-weight: 800;
+      letter-spacing: 0.2px;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .hint{
+      margin-top: 10px;
+      font-size: 12px;
+      opacity: 0.75;
+      line-height: 1.5;
+    }
+
+    .refLinks{
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(230,230,230,0.12);
+      display: grid;
+      gap: 10px;
+    }
+
+    .refLinksTitle{
+      font-size: 12px;
+      opacity: 0.85;
+      font-weight: 800;
+      letter-spacing: 0.2px;
+    }
+
+    .refRow{
+      display: flex;
+      gap: 10px;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+
+    .linkchip{
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(230, 230, 230, 0.14);
+      background: rgba(14, 58, 67, 0.22);
+      color: var(--ga-text);
+      text-decoration: none;
+      font-size: 12px;
+      opacity: 0.9;
+      cursor: pointer;
+      transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+      white-space: nowrap;
+      flex: 0 0 auto;
+    }
+
+    .linkchip:hover{
+      transform: translateY(-1px);
+      border-color: rgba(231,163,58,0.45);
+      background: rgba(14, 58, 67, 0.28);
+    }
+
+    .reminder{
+      font-size: 12px;
+      opacity: 0.86;
+      line-height: 1.5;
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(231,163,58,0.35);
+      background: rgba(231,163,58,0.08);
+    }
+
+    .bottomBar{
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    .btn{
+      border: 0;
+      cursor: pointer;
+      padding: 12px 14px;
+      border-radius: 12px;
+      color: rgba(14, 58, 67, 1);
+      background: linear-gradient(180deg, rgba(231, 163, 58, 1), rgba(231, 163, 58, 0.82));
+      font-weight: 800;
+      letter-spacing: 0.2px;
+      font-size: 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      min-width: 190px;
+      transition: transform 140ms ease, filter 140ms ease;
+      text-decoration: none;
+    }
+
+    .btn:hover{ transform: translateY(-1px); filter: brightness(1.02); }
+    .btn:active{ transform: translateY(0px); }
+
+    .btn.secondary{
+      background: rgba(33, 62, 74, 0.22);
+      color: var(--ga-text);
+      border: 1px solid rgba(231,163,58,0.55);
+      min-width: 190px;
+      box-shadow: 0 0 0 4px rgba(231,163,58,0.10);
+    }
+
+    .btn.secondary:hover{
+      border-color: rgba(231,163,58,0.80);
+      box-shadow: 0 0 0 6px rgba(231,163,58,0.12);
+      filter: none;
+    }
+
+    .legal{
+      font-size: 12px;
+      opacity: 0.7;
+      line-height: 1.55;
+      border-top: 1px solid rgba(230, 230, 230, 0.12);
+      padding-top: 12px;
+    }
+
+    .legal a{
+      color: var(--ga-text);
+      text-decoration: none;
+      border-bottom: 1px dotted rgba(230,230,230,0.35);
+    }
+    .legal a:hover{ border-bottom-color: rgba(231,163,58,0.85); }
+
+    /* Right panel */
+    .right{ padding: 26px; display: grid; grid-template-rows: auto 1fr auto; gap: 14px; }
+    .pill{ display: inline-flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 999px; border: 1px solid rgba(230, 230, 230, 0.14); background: rgba(33, 62, 74, 0.35); width: fit-content; font-size: 12px; opacity: 0.86; }
+    .dot{ width: 8px; height: 8px; border-radius: 99px; background: var(--ga-accent); box-shadow: 0 0 0 4px rgba(231,163,58,0.14); }
+    .right h2{ margin: 0; font-size: 16px; letter-spacing: -0.2px; }
+    .steps{ margin: 0; padding-left: 18px; display: grid; gap: 8px; font-size: 13px; opacity: 0.88; line-height: 1.55; }
+
+    .steps li.highlight{
+      background: rgba(231, 163, 58, 0.12);
+      border: 1px solid rgba(231, 163, 58, 0.35);
+      border-radius: 12px;
+      padding: 10px 10px;
+      margin-left: -10px;
+    }
+
+    .videoCard{
+      border: 1px solid rgba(230,230,230,0.12);
+      background: rgba(33, 62, 74, 0.28);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .videoCard .vh{
+      padding: 12px 12px;
+      border-bottom: 1px solid rgba(230,230,230,0.12);
+      font-size: 12px;
+      opacity: 0.85;
+      font-weight: 800;
+      letter-spacing: 0.2px;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .videoCard .vh a{
+      color: var(--ga-text);
+      text-decoration: none;
+      border-bottom: 1px dotted rgba(230,230,230,0.35);
+      font-weight: 700;
+      opacity: 0.9;
+      white-space: nowrap;
+    }
+    .videoCard .vh a:hover{
+      border-bottom-color: rgba(231,163,58,0.85);
+    }
+
+    .videoWrap{
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: rgba(0,0,0,0.25);
+    }
+
+    .videoWrap iframe{
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+
+    /* Modal */
+    .modalOverlay{
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      z-index: 9999;
+    }
+
+    .modal{
+      width: min(980px, 100%);
+      height: min(720px, 92vh);
+      border-radius: 16px;
+      border: 1px solid rgba(230,230,230,0.16);
+      background: rgba(14, 58, 67, 0.92);
+      box-shadow: 0 28px 80px rgba(0,0,0,0.55);
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+    }
+
+    .modalHeader{
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 12px;
+      border-bottom: 1px solid rgba(230,230,230,0.12);
+    }
+
+    .modalTitle{
+      font-weight: 800;
+      font-size: 13px;
+      opacity: 0.95;
+      letter-spacing: 0.2px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .modalClose{
+      border: 1px solid rgba(230,230,230,0.14);
+      background: rgba(33, 62, 74, 0.35);
+      color: var(--ga-text);
+      border-radius: 10px;
+      padding: 8px 10px;
+      cursor: pointer;
+      font-weight: 800;
+      font-size: 12px;
+    }
+
+    .modalClose:hover{
+      border-color: rgba(231,163,58,0.45);
+    }
+
+    .modalBody{
+      position: relative;
+      background: rgba(255,255,255,0.06);
+    }
+
+    .modalFrame{
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+      background: rgba(255,255,255,0.06);
+    }
+
+    .modalFooter{
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 12px;
+      border-top: 1px solid rgba(230,230,230,0.12);
+      font-size: 12px;
+      opacity: 0.85;
+    }
+
+    .modalFooter a{
+      color: var(--ga-text);
+      text-decoration: none;
+      border-bottom: 1px dotted rgba(230,230,230,0.35);
+      font-weight: 700;
+      opacity: 0.9;
+      white-space: nowrap;
+    }
+
+    .modalFooter a:hover{
+      border-bottom-color: rgba(231,163,58,0.85);
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <section class="panel">
+      <div class="left">
+        <div class="brand">
+          <img
+            src="https://raw.githubusercontent.com/jantwonineSR/Business-Health-Check/refs/heads/main/GA%20Logo_no%20bg.png"
+            alt="Growth Accountants logo" />
+          <div class="meta">
+            <div class="name">Growth Accountants</div>
+            <div class="tag">Business Health Check</div>
+          </div>
+        </div>
+
+        <div class="topline">
+          <h1>CRA grant access</h1>
+          <div class="refbox">Reference ID: <code id="submissionId">GA-</code></div>
+        </div>
+
+        <p class="sub">
+          Please follow the steps below to add our representative. Continue only after you see the success confirmation.
+        </p>
+
+        <div class="card">
+          <h2>Steps</h2>
+
+          <ol class="stepslist">
+            <li>
+              <button class="signInBtn" type="button"
+                data-modal-title="Sign in to your CRA account"
+                data-modal-url="https://www.canada.ca/en/revenue-agency/services/e-services/cra-login-services.html">
+                Sign in to your CRA account
+              </button>
+            </li>
+
+            <li>On the Welcome page, select your Individual account to open “My Account” / “My Business Account”.</li>
+            <li>Select <b>Profile</b> (left menu).</li>
+            <li>In <b>Authorized representative(s)</b> select <b>+ Add</b>.</li>
+            <li>
+              Enter the representative’s RepID <span class="hl">795398544</span>, select <b>Search</b>, then click <b>Next</b>.
+            </li>
+            <li>Choose Authorization: <span class="hl">Level 1</span>.</li>
+            <li>Choose Online access: <span class="hl">Yes</span>.</li>
+            <li>Do <b>not</b> set an expiry, then click <b>Next</b>.</li>
+            <li>Check the confirmation box, then click <b>Submit</b>.</li>
+            <li>You’ll get confirmation that the representative is authorized.</li>
+          </ol>
+
+          <div class="reminder">
+            <b>Continue only if you received the success confirmation that the representative is authorized.</b>
+          </div>
+
+          <div class="refLinks">
+            <div class="refLinksTitle">Reference links</div>
+
+            <div class="refRow">
+              <button class="linkchip" type="button"
+                data-modal-title="My Account (reference PDF)"
+                data-modal-url="https://www.canada.ca/content/dam/cra-arc/camp-promo/job-aid-taxpayer-e.pdf">
+                My Account (reference)
+              </button>
+
+              <button class="linkchip" type="button"
+                data-modal-title="My Business Account (reference page)"
+                data-modal-url="https://www.canada.ca/en/revenue-agency/services/tax/representative-authorization/overview.html">
+                My Business Account (reference)
+              </button>
+            </div>
+
+            <div class="hint">
+              If a canada.ca link does not load in the modal, use “Open in new tab”.
+            </div>
+          </div>
+
+          <div class="bottomBar">
+            <a class="btn" id="continueBtn" href="accounting.html">Continue</a>
+            <a class="btn secondary" id="reportBtn" href="upload.html">Report a problem</a>
+          </div>
+        </div>
+
+        <div class="legal">
+          Need help? Email <a href="mailto:info@gateam.ca">info@gateam.ca</a>.
+        </div>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <div class="right">
+        <div>
+          <div class="pill"><span class="dot"></span>Steps</div>
+          <h2 style="margin-top:10px;">Progress</h2>
+        </div>
+
+        <ol class="steps">
+          <li>Receive the NDA and policy docs to review and sign.</li>
+          <li class="highlight">Follow CRA instructions to add the authorized representative.</li>
+          <li>Grant view-only access in your accounting software to the team.</li>
+          <li>Access receipt is checked and the manual review begins.</li>
+        </ol>
+
+        <div class="videoCard">
+          <div class="vh">
+            <div>Video guide</div>
+            <a href="https://www.youtube.com/watch?v=yZrsmXRDE1s" target="_blank" rel="noopener">Open video</a>
+          </div>
+          <div class="videoWrap">
+            <iframe width="951" height="535" src="https://www.youtube.com/embed/yZrsmXRDE1s" title="Grant CRA Access to Growth Accountants" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+          </div>
+        </div>
+
+        <div class="legal">
+          If you need to share screenshots, use “Report a problem”.
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Modal -->
+  <div class="modalOverlay" id="modalOverlay" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-label="Reference link modal">
+      <div class="modalHeader">
+        <div class="modalTitle" id="modalTitle">Reference</div>
+        <button class="modalClose" id="modalClose" type="button">Close</button>
+      </div>
+      <div class="modalBody">
+        <iframe class="modalFrame" id="modalFrame" src="about:blank"></iframe>
+      </div>
+      <div class="modalFooter">
+        <div>Some canada.ca pages block embedded view.</div>
+        <a id="modalNewTab" href="#" target="_blank" rel="noopener">Open in new tab</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const APPS_SCRIPT_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbzVA97nRhA2UCeef60TjVsYIAjUaUSxolo9ELqsHO80J_tJOLSMYPaYwP6_mK-gEDgsog/exec";
+
+    function getTimezoneSafe(){
+      let tz = "";
+      try{
+        tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+      }catch(e){
+        tz = "";
+      }
+      const offsetMinutes = -new Date().getTimezoneOffset();
+      return { tz, offset_minutes: String(offsetMinutes) };
+    }
+
+    function localIsoWithOffset(){
+      const d = new Date();
+      const pad = (n) => String(n).padStart(2, "0");
+      const yyyy = d.getFullYear();
+      const MM = pad(d.getMonth() + 1);
+      const dd = pad(d.getDate());
+      const HH = pad(d.getHours());
+      const mm = pad(d.getMinutes());
+      const ss = pad(d.getSeconds());
+
+      const offsetMinutes = -d.getTimezoneOffset();
+      const sign = offsetMinutes >= 0 ? "+" : "-";
+      const abs = Math.abs(offsetMinutes);
+      const oh = pad(Math.floor(abs / 60));
+      const om = pad(abs % 60);
+
+      return `${yyyy}-${MM}-${dd}T${HH}:${mm}:${ss}${sign}${oh}:${om}`;
+    }
+
+    function loadContext(){
+      const params = new URLSearchParams(window.location.search);
+      const submission_id = params.get("submission_id") || "";
+      document.getElementById("submissionId").textContent = submission_id || "GA-";
+      return { submission_id };
+    }
+
+    const ctx = loadContext();
+
+    const reportBtn = document.getElementById("reportBtn");
+    const continueBtn = document.getElementById("continueBtn");
+    if (ctx.submission_id){
+      const current = window.location.pathname.split("/").pop() + window.location.search;
+      reportBtn.href = `upload.html?submission_id=${encodeURIComponent(ctx.submission_id)}&related_step=cra&return_to=${encodeURIComponent(current)}`;
+      continueBtn.href = `accounting.html?submission_id=${encodeURIComponent(ctx.submission_id)}`;
+    }
+async function logCraCompleted(){
+      if (!ctx.submission_id) return;
+
+      if (!APPS_SCRIPT_WEBAPP_URL || APPS_SCRIPT_WEBAPP_URL.includes("PASTE_YOUR")){
+        return;
+      }
+
+      const tz = getTimezoneSafe();
+      const payload = new URLSearchParams({
+        action: "mark_cra_completed",
+        submission_id: ctx.submission_id,
+        completed_at_client_local: localIsoWithOffset(),
+        client_timezone: tz.tz,
+        client_tz_offset_minutes: tz.offset_minutes
+      });
+
+      // Prefer sendBeacon so it survives navigation
+      try{
+        const blob = new Blob([payload.toString()], { type: "application/x-www-form-urlencoded" });
+        if (navigator.sendBeacon && navigator.sendBeacon(APPS_SCRIPT_WEBAPP_URL, blob)) return;
+      }catch(e){}
+
+      // Fallback
+      try{
+        await fetch(APPS_SCRIPT_WEBAPP_URL, { method: "POST", mode: "no-cors", body: payload, keepalive: true });
+      }catch(e2){}
+    }
+
+    continueBtn.addEventListener("click", (e) => {
+      if (!APPS_SCRIPT_WEBAPP_URL || APPS_SCRIPT_WEBAPP_URL.includes("PASTE_YOUR")){
+        // allow navigation but explain why logs will not update
+        // This alert is only shown when the URL is not configured.
+        alert("Logging is not configured on this page yet. Please set APPS_SCRIPT_WEBAPP_URL in cra.html.");
+      }
+      const ok = window.confirm("Continue only if you received the success confirmation that the representative is authorized. Continue?");
+      if (!ok){
+        e.preventDefault();
+        return;
+      }
+      logCraCompleted();
+    });
+
+    // Modal logic
+    const overlay = document.getElementById("modalOverlay");
+    const frame = document.getElementById("modalFrame");
+    const titleEl = document.getElementById("modalTitle");
+    const closeBtn = document.getElementById("modalClose");
+    const newTab = document.getElementById("modalNewTab");
+
+    function openModal(title, url){
+      titleEl.textContent = title || "Reference";
+      frame.src = "about:blank";
+      newTab.href = url;
+
+      overlay.style.display = "flex";
+      overlay.setAttribute("aria-hidden", "false");
+
+      window.setTimeout(() => { frame.src = url; }, 20);
+    }
+
+    function closeModal(){
+      overlay.style.display = "none";
+      overlay.setAttribute("aria-hidden", "true");
+      frame.src = "about:blank";
+      newTab.href = "#";
+    }
+
+    closeBtn.addEventListener("click", closeModal);
+    overlay.addEventListener("click", (e) => { if (e.target === overlay) closeModal(); });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape" && overlay.style.display === "flex") closeModal(); });
+
+    document.querySelectorAll("[data-modal-url]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const title = btn.getAttribute("data-modal-title") || "Reference";
+        const url = btn.getAttribute("data-modal-url") || "";
+        if (!url) return;
+        openModal(title, url);
+      });
+    });
+  </script>
+</body>
+</html>

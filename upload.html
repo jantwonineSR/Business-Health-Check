@@ -1,0 +1,785 @@
+<!--
+Business Health Check - Uploads / Report a problem Page (GitHub Pages) - v2
+Save as: upload.html
+
+Fixes:
+- Uses form-encoded payload (URLSearchParams) for better Apps Script compatibility.
+- Adds success modal. After closing or after a short delay, redirects to return_to (or previous page).
+- Uploads are saved under a Drive subfolder named after submission_id.
+- Server renames files to: <submission_id>__<timestamp>.<ext>
+
+Required:
+- Replace APPS_SCRIPT_WEBAPP_URL with your deployed web app URL.
+-->
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Upload files | Business Health Check</title>
+
+  <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/jantwonineSR/Business-Health-Check/refs/heads/main/GA%20Logo_no%20bg.png" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    :root{
+      --ga-primary: #213E4A;
+      --ga-accent: #E7A33A;
+      --ga-dark: #0E3A43;
+      --ga-text: #E6E6E6;
+
+      --card-bg: rgba(14, 58, 67, 0.55);
+      --card-border: rgba(230, 230, 230, 0.14);
+      --field-bg: rgba(33, 62, 74, 0.55);
+      --field-border: rgba(230, 230, 230, 0.22);
+      --field-border-focus: rgba(231, 163, 58, 0.75);
+
+      --shadow: 0 20px 50px rgba(0,0,0,0.35);
+      --radius: 18px;
+    }
+
+    *{ box-sizing: border-box; }
+    html, body{ height: 100%; }
+    body{
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color: var(--ga-text);
+      background:
+        radial-gradient(1200px 700px at 15% 10%, rgba(231, 163, 58, 0.18), transparent 55%),
+        radial-gradient(900px 600px at 80% 20%, rgba(230, 230, 230, 0.10), transparent 60%),
+        linear-gradient(135deg, var(--ga-dark), var(--ga-primary));
+      display: grid;
+      place-items: center;
+      padding: 28px 16px;
+    }
+
+    .wrap{
+      width: min(980px, 100%);
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 22px;
+      align-items: stretch;
+    }
+
+    @media (max-width: 920px){
+      .wrap{ grid-template-columns: 1fr; }
+    }
+
+    .panel{
+      border: 1px solid var(--card-border);
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      position: relative;
+      min-height: 540px;
+    }
+
+    .panel::before{
+      content: "";
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 6px;
+      background: linear-gradient(90deg, var(--ga-accent), rgba(231,163,58,0.35));
+    }
+
+    .left{
+      padding: 26px 26px 20px;
+      display: grid;
+      grid-template-rows: auto auto 1fr auto;
+      gap: 14px;
+    }
+
+    .brand{
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand img{
+      width: 46px;
+      height: 46px;
+      border-radius: 12px;
+      border: 1px solid rgba(230, 230, 230, 0.18);
+      background: rgba(255,255,255,0.06);
+      object-fit: contain;
+      padding: 6px;
+    }
+
+    .brand .meta{ display: grid; gap: 2px; }
+    .brand .meta .name{ font-weight: 700; letter-spacing: 0.2px; font-size: 14px; opacity: 0.95; }
+    .brand .meta .tag{ font-size: 12px; opacity: 0.75; }
+
+    .topline{
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    h1{
+      margin: 0;
+      font-size: 18px;
+      letter-spacing: -0.2px;
+    }
+
+    .refbox{
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(231,163,58,0.35);
+      background: rgba(33, 62, 74, 0.30);
+      font-size: 12px;
+      opacity: 0.92;
+      white-space: nowrap;
+    }
+
+    .refbox code{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      color: var(--ga-text);
+    }
+
+    .sub{
+      margin: 0;
+      opacity: 0.82;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .card{
+      border: 1px solid rgba(230,230,230,0.12);
+      background: rgba(33, 62, 74, 0.28);
+      border-radius: 16px;
+      padding: 14px 14px;
+    }
+
+    .grid{
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    @media (max-width: 520px){
+      .grid{ grid-template-columns: 1fr; }
+    }
+
+    label{
+      font-size: 12px;
+      opacity: 0.82;
+      letter-spacing: 0.2px;
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    select, input[type="text"], textarea{
+      width: 100%;
+      padding: 12px 12px;
+      border-radius: 12px;
+      background: var(--field-bg);
+      border: 1px solid var(--field-border);
+      color: var(--ga-text);
+      outline: none;
+      font-size: 14px;
+      transition: border-color 160ms ease, transform 160ms ease, background 160ms ease;
+    }
+
+    select:focus, input[type="text"]:focus, textarea:focus{
+      border-color: var(--field-border-focus);
+      background: rgba(33, 62, 74, 0.72);
+      transform: translateY(-1px);
+    }
+
+    textarea{
+      min-height: 90px;
+      resize: vertical;
+    }
+
+    input[type="file"]{
+      width: 100%;
+      padding: 10px 10px;
+      border-radius: 12px;
+      background: rgba(33, 62, 74, 0.35);
+      border: 1px dashed rgba(230, 230, 230, 0.25);
+      color: rgba(230,230,230,0.9);
+      font-size: 13px;
+    }
+
+    .hint{
+      margin-top: 8px;
+      font-size: 12px;
+      opacity: 0.72;
+      line-height: 1.45;
+    }
+
+    .actions{
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+
+    button{
+      border: 0;
+      cursor: pointer;
+      padding: 12px 14px;
+      border-radius: 12px;
+      color: rgba(14, 58, 67, 1);
+      background: linear-gradient(180deg, rgba(231, 163, 58, 1), rgba(231, 163, 58, 0.82));
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      font-size: 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      min-width: 190px;
+      transition: transform 140ms ease, filter 140ms ease;
+    }
+
+    button:hover{ transform: translateY(-1px); filter: brightness(1.02); }
+    button:active{ transform: translateY(0px); }
+    button:disabled{ opacity: 0.55; cursor: not-allowed; transform: none; }
+
+    .spinner{
+      width: 16px;
+      height: 16px;
+      border-radius: 999px;
+      border: 2px solid rgba(14, 58, 67, 0.35);
+      border-top-color: rgba(14, 58, 67, 0.95);
+      animation: spin 0.8s linear infinite;
+      display: none;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .status{
+      font-size: 12px;
+      opacity: 0.78;
+      line-height: 1.35;
+      min-height: 18px;
+    }
+
+    .queue{
+      margin-top: 12px;
+      border-top: 1px solid rgba(230,230,230,0.12);
+      padding-top: 12px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .qitem{
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      font-size: 12px;
+      opacity: 0.9;
+      padding: 10px 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(230,230,230,0.10);
+      background: rgba(14, 58, 67, 0.22);
+    }
+
+    .qitem .meta{
+      display: grid;
+      gap: 2px;
+    }
+
+    .qitem .name{
+      font-weight: 700;
+      opacity: 0.95;
+      word-break: break-word;
+    }
+
+    .qitem .subline{
+      opacity: 0.75;
+    }
+
+    .progress{
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(230,230,230,0.12);
+      overflow: hidden;
+      margin-top: 10px;
+      display: none;
+    }
+
+    .progress > div{
+      height: 100%;
+      width: 0%;
+      background: rgba(231, 163, 58, 0.85);
+      transition: width 160ms ease;
+    }
+
+    /* Right panel */
+    .right{ padding: 26px; display: grid; grid-template-rows: auto 1fr auto; gap: 14px; }
+    .pill{ display: inline-flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 999px; border: 1px solid rgba(230, 230, 230, 0.14); background: rgba(33, 62, 74, 0.35); width: fit-content; font-size: 12px; opacity: 0.86; }
+    .dot{ width: 8px; height: 8px; border-radius: 99px; background: var(--ga-accent); box-shadow: 0 0 0 4px rgba(231,163,58,0.14); }
+    .right h2{ margin: 0; font-size: 16px; letter-spacing: -0.2px; }
+    .steps{ margin: 0; padding-left: 18px; display: grid; gap: 8px; font-size: 13px; opacity: 0.88; line-height: 1.55; }
+
+    .steps li.highlight{
+      background: rgba(231, 163, 58, 0.12);
+      border: 1px solid rgba(231, 163, 58, 0.35);
+      border-radius: 12px;
+      padding: 10px 10px;
+      margin-left: -10px;
+    }
+
+    .legal{
+      font-size: 12px;
+      opacity: 0.7;
+      line-height: 1.55;
+      border-top: 1px solid rgba(230, 230, 230, 0.12);
+      padding-top: 12px;
+    }
+
+    .legal a{
+      color: var(--ga-text);
+      text-decoration: none;
+      border-bottom: 1px dotted rgba(230,230,230,0.35);
+    }
+    .legal a:hover{ border-bottom-color: rgba(231,163,58,0.85); }
+
+    /* Success modal */
+    .modalOverlay{
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      z-index: 9999;
+    }
+
+    .modal{
+      width: min(560px, 100%);
+      border-radius: 16px;
+      border: 1px solid rgba(230,230,230,0.16);
+      background: rgba(14, 58, 67, 0.92);
+      box-shadow: 0 28px 80px rgba(0,0,0,0.55);
+      overflow: hidden;
+    }
+
+    .modalHeader{
+      padding: 14px 14px;
+      border-bottom: 1px solid rgba(230,230,230,0.12);
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      font-size: 13px;
+      opacity: 0.95;
+    }
+
+    .modalBody{
+      padding: 14px 14px;
+      font-size: 13px;
+      line-height: 1.55;
+      opacity: 0.92;
+    }
+
+    .modalFooter{
+      padding: 14px 14px;
+      border-top: 1px solid rgba(230,230,230,0.12);
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .modalBtn{
+      border: 0;
+      cursor: pointer;
+      padding: 10px 12px;
+      border-radius: 12px;
+      color: rgba(14, 58, 67, 1);
+      background: linear-gradient(180deg, rgba(231, 163, 58, 1), rgba(231, 163, 58, 0.82));
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      font-size: 13px;
+      min-width: 120px;
+    }
+
+    .modalBtn.secondary{
+      background: rgba(33, 62, 74, 0.22);
+      color: var(--ga-text);
+      border: 1px solid rgba(230,230,230,0.14);
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <section class="panel">
+      <div class="left">
+        <div class="brand">
+          <img
+            src="https://raw.githubusercontent.com/jantwonineSR/Business-Health-Check/refs/heads/main/GA%20Logo_no%20bg.png"
+            alt="Growth Accountants logo" />
+          <div class="meta">
+            <div class="name">Growth Accountants</div>
+            <div class="tag">Business Health Check</div>
+          </div>
+        </div>
+
+        <div class="topline">
+          <h1>Upload files / Report a problem</h1>
+          <div class="refbox">Reference ID: <code id="submissionId">GA-</code></div>
+        </div>
+
+        <p class="sub">
+          If you hit an issue during the steps, upload a screenshot or PDF here and describe what happened.
+        </p>
+
+        <div class="card">
+          <div class="grid">
+            <div>
+              <label for="related_step">Related step</label>
+              <select id="related_step">
+                <option value="cra">CRA access</option>
+                <option value="accounting_access">Accounting access</option>
+                <option value="access_check">Access check</option>
+                <option value="nda">NDA</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div>
+              <label for="file_type">File type</label>
+              <select id="file_type">
+                <option value="screenshot">Screenshot</option>
+                <option value="pdf">PDF</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="margin-top:12px;">
+            <label for="caption">What happened (optional)</label>
+            <textarea id="caption" placeholder="Example: I can’t find the authorization screen, or the portal shows an error message."></textarea>
+          </div>
+
+          <div style="margin-top:12px;">
+            <label for="files">Choose file(s)</label>
+            <input id="files" type="file" multiple accept="image/*,.pdf" />
+            <div class="hint">
+              Tip: screenshots are best. If you upload a PDF, keep it small if possible.
+            </div>
+          </div>
+
+          <div class="progress" id="progressWrap">
+            <div id="progressBar"></div>
+          </div>
+
+          <div class="actions">
+            <button id="uploadBtn" type="button">
+              <span class="spinner" id="spinner" aria-hidden="true"></span>
+              <span id="btnText">Upload</span>
+            </button>
+            <div class="status" id="statusText" aria-live="polite"></div>
+          </div>
+
+          <div class="queue" id="queue"></div>
+        </div>
+
+        <div class="legal">
+          Need help? Email <a href="mailto:info@gateam.ca">info@gateam.ca</a>.
+        </div>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <div class="right">
+        <div>
+          <div class="pill"><span class="dot"></span>Steps</div>
+          <h2 style="margin-top:10px;">Where this is used</h2>
+        </div>
+
+        <ol class="steps">
+          <li>Receive the NDA and policy docs to review and sign.</li>
+          <li>Follow CRA instructions to add the authorized representative.</li>
+          <li>Grant view-only access in your accounting software to the team.</li>
+          <li class="highlight">Report a problem / Upload screenshots</li>
+        </ol>
+
+        <div class="legal">
+          This page keeps the same layout as the other steps for consistency.
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Success Modal -->
+  <div class="modalOverlay" id="successOverlay" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-label="Success message">
+      <div class="modalHeader">Report sent</div>
+      <div class="modalBody" id="successBody">
+        Your report was sent. We usually respond within 24 hours.
+      </div>
+      <div class="modalFooter">
+        <button class="modalBtn secondary" id="closeModalBtn" type="button">Back</button>
+        <button class="modalBtn" id="okModalBtn" type="button">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const APPS_SCRIPT_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbzVA97nRhA2UCeef60TjVsYIAjUaUSxolo9ELqsHO80J_tJOLSMYPaYwP6_mK-gEDgsog/exec";
+
+    const submissionIdEl = document.getElementById("submissionId");
+    const relatedStepEl = document.getElementById("related_step");
+    const fileTypeEl = document.getElementById("file_type");
+    const captionEl = document.getElementById("caption");
+    const filesEl = document.getElementById("files");
+
+    const uploadBtn = document.getElementById("uploadBtn");
+    const spinner = document.getElementById("spinner");
+    const btnText = document.getElementById("btnText");
+    const statusText = document.getElementById("statusText");
+    const queueEl = document.getElementById("queue");
+
+    const progressWrap = document.getElementById("progressWrap");
+    const progressBar = document.getElementById("progressBar");
+
+    const successOverlay = document.getElementById("successOverlay");
+    const okModalBtn = document.getElementById("okModalBtn");
+    const closeModalBtn = document.getElementById("closeModalBtn");
+
+    let returnTo = "";
+
+    function setBusy(isBusy){
+      uploadBtn.disabled = isBusy;
+      spinner.style.display = isBusy ? "inline-block" : "none";
+      btnText.textContent = isBusy ? "Uploading..." : "Upload";
+    }
+
+    function getTimezoneSafe(){
+      let tz = "";
+      try{
+        tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+      }catch(e){
+        tz = "";
+      }
+      const offsetMinutes = -new Date().getTimezoneOffset();
+      return { tz, offset_minutes: String(offsetMinutes) };
+    }
+
+    function localIsoWithOffset(){
+      const d = new Date();
+      const pad = (n) => String(n).padStart(2, "0");
+      const yyyy = d.getFullYear();
+      const MM = pad(d.getMonth() + 1);
+      const dd = pad(d.getDate());
+      const HH = pad(d.getHours());
+      const mm = pad(d.getMinutes());
+      const ss = pad(d.getSeconds());
+
+      const offsetMinutes = -d.getTimezoneOffset();
+      const sign = offsetMinutes >= 0 ? "+" : "-";
+      const abs = Math.abs(offsetMinutes);
+      const oh = pad(Math.floor(abs / 60));
+      const om = pad(abs % 60);
+
+      return `${yyyy}-${MM}-${dd}T${HH}:${mm}:${ss}${sign}${oh}:${om}`;
+    }
+
+    function loadContext(){
+      const params = new URLSearchParams(window.location.search);
+      const submission_id = params.get("submission_id") || "";
+      const related_step = params.get("related_step") || "";
+      returnTo = params.get("return_to") || "";
+
+      if(related_step){
+        relatedStepEl.value = related_step;
+      }
+
+      submissionIdEl.textContent = submission_id || "GA-";
+      return { submission_id };
+    }
+
+    function renderQueue(files){
+      queueEl.innerHTML = "";
+      if(!files || files.length === 0) return;
+
+      Array.from(files).forEach((f) => {
+        const item = document.createElement("div");
+        item.className = "qitem";
+        item.innerHTML = `
+          <div class="meta">
+            <div class="name">${escapeHtml(f.name)}</div>
+            <div class="subline">${Math.round(f.size/1024)} KB • ${escapeHtml(f.type || "file")}</div>
+          </div>
+          <div style="opacity:0.75;">queued</div>
+        `;
+        queueEl.appendChild(item);
+      });
+    }
+
+        function escapeHtml(s){
+      return String(s || "").replace(/[&<>"']/g, (m) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        "\"": "&quot;",
+        "'": "&#039;"
+      }[m]));
+    }
+
+    function readFileAsBase64(file){
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const res = String(reader.result || "");
+          const parts = res.split(",");
+          resolve(parts.length > 1 ? parts[1] : "");
+        };
+        reader.onerror = () => reject(new Error("Could not read file."));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function postForm(payload){
+      if(!APPS_SCRIPT_WEBAPP_URL || APPS_SCRIPT_WEBAPP_URL.includes("PASTE_YOUR")){
+        throw new Error("Missing web app URL. Paste your Apps Script deployment URL into APPS_SCRIPT_WEBAPP_URL.");
+      }
+
+      // no-cors means we can't read the response, but we can still send reliably.
+      await fetch(APPS_SCRIPT_WEBAPP_URL, {
+        method: "POST",
+        mode: "no-cors",
+        body: payload
+      });
+
+      return true;
+    }
+
+    function openSuccessModal(){
+      successOverlay.style.display = "flex";
+      successOverlay.setAttribute("aria-hidden", "false");
+
+      // auto return after a short delay
+      window.setTimeout(() => {
+        goBack();
+      }, 2500);
+    }
+
+    function closeSuccessModal(){
+      successOverlay.style.display = "none";
+      successOverlay.setAttribute("aria-hidden", "true");
+    }
+
+    function goBack(){
+      if(returnTo){
+        window.location.href = returnTo;
+        return;
+      }
+      if(document.referrer){
+        window.location.href = document.referrer;
+        return;
+      }
+      if(window.history.length > 1){
+        window.history.back();
+        return;
+      }
+      window.location.href = "cra.html";
+    }
+
+    okModalBtn.addEventListener("click", () => {
+      closeSuccessModal();
+      goBack();
+    });
+    closeModalBtn.addEventListener("click", () => {
+      closeSuccessModal();
+      goBack();
+    });
+    successOverlay.addEventListener("click", (e) => {
+      if(e.target === successOverlay){
+        closeSuccessModal();
+        goBack();
+      }
+    });
+
+    const ctx = loadContext();
+
+    filesEl.addEventListener("change", () => {
+      renderQueue(filesEl.files);
+    });
+
+    uploadBtn.addEventListener("click", async () => {
+      statusText.textContent = "";
+
+      const submission_id = ctx.submission_id;
+      if(!submission_id || !submission_id.startsWith("GA-")){
+        statusText.textContent = "Missing reference ID. Open this page from the step link.";
+        return;
+      }
+
+      const files = Array.from(filesEl.files || []);
+      if(files.length === 0){
+        statusText.textContent = "Choose at least one file.";
+        return;
+      }
+
+      const totalBytes = files.reduce((a,f)=>a+f.size,0);
+      const maxTotal = 8 * 1024 * 1024;
+      if(totalBytes > maxTotal){
+        statusText.textContent = "Total files are too large. Please upload smaller screenshots (under ~8MB total).";
+        return;
+      }
+
+      const tz = getTimezoneSafe();
+      const related_step = relatedStepEl.value;
+      const file_type = fileTypeEl.value;
+      const caption = captionEl.value.trim();
+
+      setBusy(true);
+      progressWrap.style.display = "block";
+      progressBar.style.width = "0%";
+
+      try{
+        for(let i=0;i<files.length;i++){
+          const f = files[i];
+          statusText.textContent = `Uploading ${i+1}/${files.length}...`;
+
+          const b64 = await readFileAsBase64(f);
+
+          const payload = new URLSearchParams({
+            action: "upload_file",
+            submission_id,
+            related_step,
+            file_type,
+            caption,
+            file_name: f.name,
+            mime_type: f.type || "",
+            file_base64: b64,
+            uploaded_at_client_local: localIsoWithOffset(),
+            client_timezone: tz.tz,
+            client_tz_offset_minutes: tz.offset_minutes
+          });
+
+          await postForm(payload);
+          progressBar.style.width = `${Math.round(((i+1)/files.length)*100)}%`;
+        }
+
+        statusText.textContent = "";
+        filesEl.value = "";
+        renderQueue([]);
+        openSuccessModal();
+
+      }catch(err){
+        statusText.textContent = err && err.message ? err.message : "Could not upload. Please try again.";
+      }finally{
+        setBusy(false);
+      }
+    });
+  </script>
+</body>
+</html>

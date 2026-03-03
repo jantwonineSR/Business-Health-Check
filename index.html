@@ -1,0 +1,667 @@
+<!--
+Business Health Check - Landing Page (GitHub Pages) - v3
+Update:
+- Redirects to nda.html after submit
+- Stores the submitted values into sessionStorage for the next page
+-->
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Business Health Check | Growth Accountants</title>
+
+  <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/jantwonineSR/Business-Health-Check/refs/heads/main/GA%20Logo_no%20bg.png" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    :root{
+      --ga-primary: #213E4A;
+      --ga-accent: #E7A33A;
+      --ga-dark: #0E3A43;
+      --ga-text: #E6E6E6;
+
+      --card-bg: rgba(14, 58, 67, 0.55);
+      --card-border: rgba(230, 230, 230, 0.14);
+      --field-bg: rgba(33, 62, 74, 0.55);
+      --field-border: rgba(230, 230, 230, 0.22);
+      --field-border-focus: rgba(231, 163, 58, 0.75);
+
+      --shadow: 0 20px 50px rgba(0,0,0,0.35);
+      --radius: 18px;
+    }
+
+    *{ box-sizing: border-box; }
+    html, body{ height: 100%; }
+    body{
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color: var(--ga-text);
+      background:
+        radial-gradient(1200px 700px at 15% 10%, rgba(231, 163, 58, 0.18), transparent 55%),
+        radial-gradient(900px 600px at 80% 20%, rgba(230, 230, 230, 0.10), transparent 60%),
+        linear-gradient(135deg, var(--ga-dark), var(--ga-primary));
+      display: grid;
+      place-items: center;
+      padding: 28px 16px;
+    }
+
+    .wrap{
+      width: min(980px, 100%);
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 22px;
+      align-items: stretch;
+    }
+
+    @media (max-width: 920px){
+      .wrap{ grid-template-columns: 1fr; }
+    }
+
+    .panel{
+      border: 1px solid var(--card-border);
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      position: relative;
+      min-height: 540px;
+    }
+
+    .panel::before{
+      content: "";
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 6px;
+      background: linear-gradient(90deg, var(--ga-accent), rgba(231,163,58,0.35));
+    }
+
+    .left{
+      padding: 26px 26px 20px;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 18px;
+    }
+
+    .brand{
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand img{
+      width: 46px;
+      height: 46px;
+      border-radius: 12px;
+      border: 1px solid rgba(230, 230, 230, 0.18);
+      background: rgba(255,255,255,0.06);
+      object-fit: contain;
+      padding: 6px;
+    }
+
+    .brand .meta{
+      display: grid;
+      gap: 2px;
+    }
+
+    .brand .meta .name{
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      font-size: 14px;
+      opacity: 0.95;
+    }
+
+    .brand .meta .tag{
+      font-size: 12px;
+      opacity: 0.75;
+    }
+
+    h1{
+      margin: 0;
+      font-size: clamp(22px, 2.6vw, 30px);
+      line-height: 1.18;
+      letter-spacing: -0.4px;
+    }
+
+    .sub{
+      margin: 8px 0 0;
+      opacity: 0.8;
+      font-size: 13px;
+      line-height: 1.55;
+      max-width: 54ch;
+    }
+
+    .form{
+      display: grid;
+      gap: 12px;
+      margin-top: 6px;
+    }
+
+    .row{
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    @media (max-width: 520px){
+      .row{ grid-template-columns: 1fr; }
+    }
+
+    .field{
+      display: grid;
+      gap: 6px;
+    }
+
+    label{
+      font-size: 12px;
+      opacity: 0.82;
+      letter-spacing: 0.2px;
+    }
+
+    input{
+      width: 100%;
+      padding: 12px 12px;
+      border-radius: 12px;
+      background: var(--field-bg);
+      border: 1px solid var(--field-border);
+      color: var(--ga-text);
+      outline: none;
+      font-size: 14px;
+      transition: border-color 160ms ease, transform 160ms ease, background 160ms ease;
+    }
+
+    input:focus{
+      border-color: var(--field-border-focus);
+      background: rgba(33, 62, 74, 0.72);
+      transform: translateY(-1px);
+    }
+
+    input::placeholder{ color: rgba(230, 230, 230, 0.55); }
+
+    .hint{
+      font-size: 12px;
+      opacity: 0.7;
+      margin: 4px 0 0;
+      line-height: 1.5;
+    }
+
+    .error{
+      font-size: 12px;
+      color: rgba(231, 163, 58, 0.95);
+      display: none;
+      margin-top: 2px;
+    }
+
+    .actions{
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 6px;
+    }
+
+    button{
+      border: 0;
+      cursor: pointer;
+      padding: 12px 14px;
+      border-radius: 12px;
+      color: rgba(14, 58, 67, 1);
+      background: linear-gradient(180deg, rgba(231, 163, 58, 1), rgba(231, 163, 58, 0.82));
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      font-size: 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      min-width: 180px;
+      transition: transform 140ms ease, filter 140ms ease;
+    }
+
+    button:hover{ transform: translateY(-1px); filter: brightness(1.02); }
+    button:active{ transform: translateY(0px); }
+    button:disabled{ opacity: 0.65; cursor: not-allowed; transform: none; }
+
+    .spinner{
+      width: 16px;
+      height: 16px;
+      border-radius: 999px;
+      border: 2px solid rgba(14, 58, 67, 0.35);
+      border-top-color: rgba(14, 58, 67, 0.95);
+      animation: spin 0.8s linear infinite;
+      display: none;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .status{
+      font-size: 12px;
+      opacity: 0.78;
+      line-height: 1.35;
+      min-height: 18px;
+    }
+
+    .footer{
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 12px;
+      border-top: 1px solid rgba(230, 230, 230, 0.12);
+      padding-top: 14px;
+      margin-top: 8px;
+      font-size: 12px;
+      opacity: 0.72;
+    }
+
+    .footer a{
+      color: var(--ga-text);
+      text-decoration: none;
+      border-bottom: 1px dotted rgba(230,230,230,0.35);
+    }
+    .footer a:hover{ border-bottom-color: rgba(231,163,58,0.85); }
+
+    /* Right panel */
+    .right{
+      padding: 26px;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 14px;
+    }
+
+    .right h2{
+      margin: 0;
+      font-size: 16px;
+      letter-spacing: -0.2px;
+    }
+
+    .steps{
+      margin: 0;
+      padding-left: 18px;
+      display: grid;
+      gap: 8px;
+      font-size: 13px;
+      opacity: 0.88;
+      line-height: 1.55;
+    }
+
+    .pill{
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(230, 230, 230, 0.14);
+      background: rgba(33, 62, 74, 0.35);
+      width: fit-content;
+      font-size: 12px;
+      opacity: 0.86;
+    }
+
+    .dot{
+      width: 8px;
+      height: 8px;
+      border-radius: 99px;
+      background: var(--ga-accent);
+      box-shadow: 0 0 0 4px rgba(231,163,58,0.14);
+    }
+
+    .legal{
+      font-size: 12px;
+      opacity: 0.7;
+      line-height: 1.55;
+      border-top: 1px solid rgba(230, 230, 230, 0.12);
+      padding-top: 12px;
+    }
+
+    .toast{
+      position: fixed;
+      left: 50%;
+      bottom: 18px;
+      transform: translateX(-50%);
+      background: rgba(14, 58, 67, 0.92);
+      border: 1px solid rgba(231, 163, 58, 0.35);
+      color: var(--ga-text);
+      padding: 10px 12px;
+      border-radius: 12px;
+      box-shadow: 0 18px 40px rgba(0,0,0,0.35);
+      font-size: 13px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 180ms ease, transform 180ms ease;
+      transform-origin: center;
+    }
+
+    .toast.show{
+      opacity: 1;
+      transform: translateX(-50%) translateY(-2px);
+    }
+
+    .hp{
+      position: absolute;
+      left: -9999px;
+      top: -9999px;
+      opacity: 0;
+      pointer-events: none;
+      height: 0;
+      width: 0;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <section class="panel">
+      <div class="left">
+        <div class="brand">
+          <img
+            src="https://raw.githubusercontent.com/jantwonineSR/Business-Health-Check/refs/heads/main/GA%20Logo_no%20bg.png"
+            alt="Growth Accountants logo" />
+          <div class="meta">
+            <div class="name">Growth Accountants</div>
+            <div class="tag">Business Health Check intake</div>
+          </div>
+        </div>
+
+        <div>
+          <h1>Start your Business Health Check</h1>
+          <p class="sub">
+            Share your contact details so the team can send the next steps for access and review.
+          </p>
+
+          <form id="leadForm" class="form" novalidate>
+            <input class="hp" type="text" name="company_website" id="company_website" tabindex="-1" autocomplete="off" />
+
+            <div class="row">
+              <div class="field">
+                <label for="first_name">First name</label>
+                <input id="first_name" name="first_name" type="text" placeholder="Jane" autocomplete="given-name" required />
+                <div class="error" data-err="first_name"></div>
+              </div>
+
+              <div class="field">
+                <label for="last_name">Last name</label>
+                <input id="last_name" name="last_name" type="text" placeholder="Doe" autocomplete="family-name" required />
+                <div class="error" data-err="last_name"></div>
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="company_name">Company name</label>
+              <input id="company_name" name="company_name" type="text" placeholder="Company Inc." autocomplete="organization" required />
+              <div class="error" data-err="company_name"></div>
+            </div>
+
+            <div class="field">
+              <label for="email">Email</label>
+              <input id="email" name="email" type="email" placeholder="name@company.com" autocomplete="email" required />
+              <div class="error" data-err="email"></div>
+            </div>
+
+            <div class="field">
+              <label for="phone">Phone number</label>
+              <input id="phone" name="phone" type="tel" placeholder="+1 604 742 1515" autocomplete="tel" required />
+              <div class="error" data-err="phone"></div>
+              <div class="hint">Use any format. If possible, include country code.</div>
+            </div>
+
+            <div class="actions">
+              <button id="submitBtn" type="submit">
+                <span class="spinner" id="spinner" aria-hidden="true"></span>
+                <span id="btnText">Submit</span>
+              </button>
+              <div class="status" id="statusText" aria-live="polite"></div>
+            </div>
+          </form>
+        </div>
+
+        <div class="footer">
+          <div>
+            Growth Accountants Inc.<br />
+            3012 Murray St, Port Moody, BC V3H 1X2, Canada
+          </div>
+          <div>
+            <a href="mailto:info@gateam.ca">info@gateam.ca</a><br />
+            (604) 742-1515
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <div class="right">
+        <div>
+          <div class="pill"><span class="dot"></span>What happens next</div>
+          <h2 style="margin-top:10px;">After you submit</h2>
+        </div>
+
+        <ol class="steps">
+          <li>Receive the NDA and policy docs to review and sign.</li>
+          <li>Follow CRA instructions to add the authorized representative.</li>
+          <li>Grant view-only access in your accounting software to the team.</li>
+          <li>Access receipt is checked and the manual review begins.</li>
+        </ol>
+
+        <div class="legal">
+          By submitting this form, you are sharing your contact details so Growth Accountants can follow up about the Business Health Check.
+          If you want copies of the Privacy Policy, Terms of Service, Cookies Policy, or SMS Privacy Policy, request them at
+          <a href="mailto:info@gateam.ca">info@gateam.ca</a>.
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const APPS_SCRIPT_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbzVA97nRhA2UCeef60TjVsYIAjUaUSxolo9ELqsHO80J_tJOLSMYPaYwP6_mK-gEDgsog/exec";
+
+    const form = document.getElementById("leadForm");
+    const statusText = document.getElementById("statusText");
+    const submitBtn = document.getElementById("submitBtn");
+    const spinner = document.getElementById("spinner");
+    const btnText = document.getElementById("btnText");
+    const toast = document.getElementById("toast");
+
+    let inFlight = false;
+
+    function showToast(message){
+      toast.textContent = message;
+      toast.classList.add("show");
+      window.setTimeout(() => toast.classList.remove("show"), 2400);
+    }
+
+    function setBusy(isBusy){
+      submitBtn.disabled = isBusy;
+      spinner.style.display = isBusy ? "inline-block" : "none";
+      btnText.textContent = isBusy ? "Submitting..." : "Submit";
+    }
+
+    function setError(fieldName, message){
+      const el = document.querySelector(`[data-err="${fieldName}"]`);
+      if(!el) return;
+      if(message){
+        el.textContent = message;
+        el.style.display = "block";
+      }else{
+        el.textContent = "";
+        el.style.display = "none";
+      }
+    }
+
+    function clearErrors(){
+      ["first_name","last_name","company_name","email","phone"].forEach(k => setError(k, ""));
+    }
+
+    function isEmailValid(value){
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+    }
+
+    function getUTMParams(){
+      const url = new URL(window.location.href);
+      const qs = url.searchParams;
+      const keys = ["utm_source","utm_medium","utm_campaign","utm_content","utm_term","source_channel"];
+      const out = {};
+      keys.forEach(k => {
+        const v = qs.get(k);
+        if(v) out[k] = v;
+      });
+      out.landing_url = window.location.href;
+      return out;
+    }
+
+    function onlyLettersUpper(s){
+      return (s || "").toString().toUpperCase().replace(/[^A-Z]/g, "");
+    }
+
+    function first3OrXXX(s){
+      const t = onlyLettersUpper(s);
+      return (t + "XXX").slice(0, 3);
+    }
+
+    function timeBasedId(){
+      const d = new Date();
+      const pad = (n, w) => String(n).padStart(w, "0");
+      const yyyy = d.getFullYear();
+      const MM = pad(d.getMonth() + 1, 2);
+      const dd = pad(d.getDate(), 2);
+      const HH = pad(d.getHours(), 2);
+      const mm = pad(d.getMinutes(), 2);
+      const ss = pad(d.getSeconds(), 2);
+      const mmm = pad(d.getMilliseconds(), 3);
+      return `${yyyy}${MM}${dd}${HH}${mm}${ss}${mmm}`;
+    }
+
+    function buildSubmissionId(firstName, lastName){
+      return `GA-${first3OrXXX(firstName)}${first3OrXXX(lastName)}-${timeBasedId()}`;
+    }
+
+    function getTimezoneSafe(){
+      let tz = "";
+      try{
+        tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+      }catch(e){
+        tz = "";
+      }
+      const offsetMinutes = -new Date().getTimezoneOffset();
+      const sign = offsetMinutes >= 0 ? "+" : "-";
+      const abs = Math.abs(offsetMinutes);
+      const hh = String(Math.floor(abs / 60)).padStart(2, "0");
+      const mm = String(abs % 60).padStart(2, "0");
+      const utcOffset = `UTC${sign}${hh}:${mm}`;
+      return { tz: tz || utcOffset, offset_minutes: String(offsetMinutes) };
+    }
+
+    function localIsoWithOffset(){
+      const d = new Date();
+      const pad = (n) => String(n).padStart(2, "0");
+      const yyyy = d.getFullYear();
+      const MM = pad(d.getMonth() + 1);
+      const dd = pad(d.getDate());
+      const HH = pad(d.getHours());
+      const mm = pad(d.getMinutes());
+      const ss = pad(d.getSeconds());
+
+      const offsetMinutes = -d.getTimezoneOffset();
+      const sign = offsetMinutes >= 0 ? "+" : "-";
+      const abs = Math.abs(offsetMinutes);
+      const oh = pad(Math.floor(abs / 60));
+      const om = pad(abs % 60);
+
+      return `${yyyy}-${MM}-${dd}T${HH}:${mm}:${ss}${sign}${oh}:${om}`;
+    }
+
+    async function sendToWebApp(payload){
+      if(!APPS_SCRIPT_WEBAPP_URL || APPS_SCRIPT_WEBAPP_URL.includes("PASTE_YOUR")){
+        throw new Error("Missing web app URL. Paste your Apps Script deployment URL into APPS_SCRIPT_WEBAPP_URL.");
+      }
+
+      const body = new URLSearchParams(payload);
+
+      await fetch(APPS_SCRIPT_WEBAPP_URL, {
+        method: "POST",
+        mode: "no-cors",
+        body
+      });
+
+      return { ok: true };
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if(inFlight) return;
+
+      clearErrors();
+      statusText.textContent = "";
+
+      const first_name = document.getElementById("first_name").value.trim();
+      const last_name = document.getElementById("last_name").value.trim();
+      const company_name = document.getElementById("company_name").value.trim();
+      const email = document.getElementById("email").value.trim();
+      const phone = document.getElementById("phone").value.trim();
+      const honeypot = document.getElementById("company_website").value.trim();
+
+      let hasError = false;
+
+      if(!first_name){ setError("first_name", "Required."); hasError = true; }
+      if(!last_name){ setError("last_name", "Required."); hasError = true; }
+      if(!company_name){ setError("company_name", "Required."); hasError = true; }
+
+      if(!email){ setError("email", "Required."); hasError = true; }
+      else if(!isEmailValid(email)){ setError("email", "Enter a valid email address."); hasError = true; }
+
+      if(!phone){ setError("phone", "Required."); hasError = true; }
+
+      if(hasError) return;
+
+      const submission_id = buildSubmissionId(first_name, last_name);
+      const tzInfo = getTimezoneSafe();
+      const utm = getUTMParams();
+
+      const payload = {
+        action: "create_submission",
+        submission_id,
+        first_name,
+        last_name,
+        company_name,
+        email,
+        phone,
+        client_timezone: tzInfo.tz,
+        client_tz_offset_minutes: tzInfo.offset_minutes,
+        client_local_iso: localIsoWithOffset(),
+        honeypot,
+        ...utm
+      };
+
+      const stash = {
+        submission_id, first_name, last_name, company_name, email, phone,
+        client_timezone: tzInfo.tz, client_tz_offset_minutes: tzInfo.offset_minutes
+      };
+
+      inFlight = true;
+      setBusy(true);
+
+      try{
+        const resp = await sendToWebApp(payload);
+
+        if(resp && resp.ok){
+          sessionStorage.setItem("bhc_submission", JSON.stringify(stash));
+          showToast("Submitted.");
+          const nextUrl = `nda.html?submission_id=${encodeURIComponent(submission_id)}&first_name=${encodeURIComponent(first_name)}&last_name=${encodeURIComponent(last_name)}&company_name=${encodeURIComponent(company_name)}&email=${encodeURIComponent(email)}`;
+          window.location.assign(nextUrl);
+        }else{
+          statusText.textContent = "Could not submit. Please try again.";
+          showToast("Could not submit. Please try again.");
+        }
+      }catch(err){
+        statusText.textContent = err && err.message ? err.message : "Could not submit. Please try again.";
+        showToast("Could not submit. Please try again.");
+      }finally{
+        setBusy(false);
+        inFlight = false;
+      }
+    });
+  </script>
+</body>
+</html>
